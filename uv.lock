@@ -1774,8 +1774,8 @@ dependencies = [
     { name = "langchain-community" },
     { name = "langchain-core" },
     { name = "langchain-ollama" },
+    { name = "langchain-text-splitters" },
     { name = "pypdf" },
-    { name = "pytest" },
     { name = "sentence-transformers" },
 ]
 
@@ -1792,8 +1792,8 @@ requires-dist = [
     { name = "langchain-community", specifier = ">=0.4.1" },
     { name = "langchain-core", specifier = ">=0.3" },
     { name = "langchain-ollama", specifier = ">=1.1.0" },
+    { name = "langchain-text-splitters", specifier = ">=0.3" },
     { name = "pypdf", specifier = ">=6.10.2" },
-    { name = "pytest", specifier = ">=9.0.3" },
     { name = "sentence-transformers", specifier = ">=5.4.1" },
 ]
 
