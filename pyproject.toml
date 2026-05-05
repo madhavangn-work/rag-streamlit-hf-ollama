@@ -28,4 +28,6 @@ pythonpath = ["."]
 filterwarnings = [
     # Upstream Chroma telemetry: asyncio.iscoroutinefunction deprecation (Python 3.16+)
     "ignore::DeprecationWarning:chromadb.telemetry",
+    # LangChain runnables (Python 3.14+): same asyncio helper deprecation
+    "ignore::DeprecationWarning:langchain_core.runnables.utils",
 ]
