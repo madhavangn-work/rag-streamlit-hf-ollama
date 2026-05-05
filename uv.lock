@@ -1775,6 +1775,7 @@ dependencies = [
     { name = "langchain-core" },
     { name = "langchain-ollama" },
     { name = "pypdf" },
+    { name = "pytest" },
     { name = "sentence-transformers" },
 ]
 
@@ -1792,6 +1793,7 @@ requires-dist = [
     { name = "langchain-core", specifier = ">=0.3" },
     { name = "langchain-ollama", specifier = ">=1.1.0" },
     { name = "pypdf", specifier = ">=6.10.2" },
+    { name = "pytest", specifier = ">=9.0.3" },
     { name = "sentence-transformers", specifier = ">=5.4.1" },
 ]
 
