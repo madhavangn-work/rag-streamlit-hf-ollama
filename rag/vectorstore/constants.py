@@ -1,0 +1,2 @@
+DEFAULT_CHROMA_COLLECTION = "rag_documents"
+DEFAULT_CHROMA_CHILD_COLLECTION = "rag_child_chunks"
