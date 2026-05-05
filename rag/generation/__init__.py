@@ -9,8 +9,10 @@ from rag.generation.hf_chat import create_chat_huggingface_local
 from rag.generation.ollama_chat import create_chat_ollama
 from rag.generation.ollama_models import list_installed_ollama_models
 from rag.generation.prompts import RAG_GENERATION_PROMPT
+from rag.retrieval.adapters import adapt_prompt_with_runnable
 
 __all__ = [
+    "adapt_prompt_with_runnable",
     "DEFAULT_HF_GENERATION_MODEL_ID",
     "OllamaDiscoveryError",
     "RAG_GENERATION_PROMPT",
