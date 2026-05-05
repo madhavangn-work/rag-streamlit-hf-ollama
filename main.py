@@ -1,5 +1,5 @@
-def main():
-    print("Hello from rag-streamlit-hf-ollama!")
+def main() -> None:
+    print("CLI placeholder. Launch the demo with: uv run streamlit run app.py")
 
 
 if __name__ == "__main__":
