@@ -25,3 +25,7 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+filterwarnings = [
+    # Upstream Chroma telemetry: asyncio.iscoroutinefunction deprecation (Python 3.16+)
+    "ignore::DeprecationWarning:chromadb.telemetry",
+]
