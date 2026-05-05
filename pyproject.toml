@@ -17,6 +17,7 @@ dependencies = [
     "sentence-transformers>=5.4.1",
     "langchain-huggingface>=1.2.2",
     "streamlit>=1.57.0",
+    "torchvision>=0.26.0",
 ]
 
 [dependency-groups]
