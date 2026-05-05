@@ -26,11 +26,79 @@ from rag.retrieval import (
 )
 from streamlit_helpers.io import save_uploads_to_tempdir
 
-st.set_page_config(page_title="RAG (Ollama / Hugging Face)", layout="wide")
+_CSS = """
+    <style>
+    :root {
+        --muted: rgb(107, 114, 128);
+        --border: rgb(229, 231, 235);
+        --accent: rgb(59, 130, 246);
+    }
+    .streamlit-expanderHeader { font-weight: 600; }
+    section[data-testid="stSidebar"] .block-container { padding-top: 1.5rem; }
+    .product-hero-title {
+        font-size: clamp(1.65rem, 2.8vw, 2.05rem);
+        font-weight: 650;
+        letter-spacing: -0.025em;
+        line-height: 1.25;
+        margin-bottom: 0.35rem;
+        color: rgb(17, 24, 39);
+    }
+    .product-hero-lead {
+        font-size: 1rem;
+        color: rgb(75, 85, 99);
+        max-width: 52rem;
+        line-height: 1.55;
+        margin-bottom: 0;
+    }
+    .status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        padding: 0.2rem 0.65rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgb(249, 250, 251);
+        color: rgb(55, 65, 81);
+        margin-bottom: 1rem;
+    }
+    .status-chip.ready { border-color: rgb(187, 247, 208); background: rgb(240, 253, 244); color: rgb(22, 101, 52); }
+    .status-chip.pending { border-color: rgb(254, 240, 138); background: rgb(254, 252, 232); color: rgb(133, 77, 14); }
+    hr.product-rule { margin: 1.25rem 0 1.5rem; border: none; border-top: 1px solid var(--border); }
+    .section-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: rgb(156, 163, 175);
+        margin-bottom: 0.5rem;
+    }
+    .footer-muted { font-size: 0.75rem; color: var(--muted); }
+    div[data-testid="stMarkdownContainer"] p { margin-bottom: 0.5rem; }
+    </style>
+"""
 
-st.title("Modular RAG demo")
-st.caption(
-    "Indexing, retrieval, and generation run in `rag/`; this file only wires Streamlit widgets.",
+
+def _inject_styles() -> None:
+    st.markdown(_CSS, unsafe_allow_html=True)
+
+
+st.set_page_config(
+    page_title="Retriever Studio",
+    page_icon=None,
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+_inject_styles()
+
+st.markdown('<p class="product-hero-title">Retriever Studio</p>', unsafe_allow_html=True)
+st.markdown(
+    '<p class="product-hero-lead">Ingest organizational documents, configure embedding and '
+    "language backends, then run grounded question answering with configurable retrieval strategies. "
+    "All reasoning and storage run in isolated pipeline modules—this interface gathers settings only.</p>",
+    unsafe_allow_html=True,
 )
 
 if "indexed_corpus" not in st.session_state:
@@ -47,13 +115,17 @@ def _ollama_model_choices() -> list[str]:
 
 
 with st.sidebar:
-    st.header("Embedding (index time)")
-    emb_backend = st.radio("Embedding backend", ["ollama", "huggingface"], horizontal=True)
+    st.markdown('<p class="section-label">Indexing · Embeddings</p>', unsafe_allow_html=True)
+    emb_backend = st.radio(
+        "Vector embedding provider",
+        ["ollama", "huggingface"],
+        horizontal=True,
+    )
     ollama_embed_models = _ollama_model_choices()
     if emb_backend == "ollama":
         if ollama_embed_models:
             emb_ollama_model = st.selectbox(
-                "Ollama embedding model",
+                "Embedding model tag",
                 ollama_embed_models,
                 index=(
                     ollama_embed_models.index(DEFAULT_OLLAMA_EMBED_MODEL)
@@ -62,59 +134,124 @@ with st.sidebar:
                 ),
             )
         else:
-            st.info("Ollama not reachable — enter a model name (e.g. `nomic-embed-text`).")
+            st.info(
+                "The Ollama registry could not be queried from this host. "
+                "Confirm the service is reachable, then enter a model tag manually.",
+            )
             emb_ollama_model = st.text_input(
-                "Ollama embedding model",
+                "Embedding model tag",
                 value=DEFAULT_OLLAMA_EMBED_MODEL,
             )
         emb_hf_model = DEFAULT_HF_EMBED_MODEL
     else:
-        emb_hf_model = st.text_input("HF embedding model id", value=DEFAULT_HF_EMBED_MODEL)
+        emb_hf_model = st.text_input(
+            "Hugging Face model repository",
+            value=DEFAULT_HF_EMBED_MODEL,
+        )
         emb_ollama_model = DEFAULT_OLLAMA_EMBED_MODEL
 
-    st.header("Chat (answers + HyDE / multi-query)")
-    gen_backend = st.radio("Chat backend", ["ollama", "huggingface"], horizontal=True)
+    st.divider()
+
+    st.markdown('<p class="section-label">Answering · Language model</p>', unsafe_allow_html=True)
+    gen_backend = st.radio(
+        "Response provider",
+        ["ollama", "huggingface"],
+        horizontal=True,
+    )
     gen_ollama_models = _ollama_model_choices()
     if gen_backend == "ollama":
         if gen_ollama_models:
-            gen_ollama_model = st.selectbox("Ollama chat model", gen_ollama_models)
+            gen_ollama_model = st.selectbox("Chat-capable model", gen_ollama_models)
         else:
-            gen_ollama_model = st.text_input("Ollama chat model", value="llama3.2:latest")
+            gen_ollama_model = st.text_input("Chat-capable model", value="llama3.2:latest")
         gen_hf_model = DEFAULT_HF_GENERATION_MODEL_ID
     else:
         gen_hf_model = st.text_input(
-            "HF chat model (≤2B recommended)",
+            "Chat model repository",
+            help="Use a suitably sized instruct model for your hardware (≤2B parameters recommended).",
             value=DEFAULT_HF_GENERATION_MODEL_ID,
         )
         gen_ollama_model = "llama3.2:latest"
 
-    st.header("Chunking & retrieval")
-    use_parent = st.checkbox("Parent-document retrieval (larger parent context)", value=False)
+    st.divider()
+
+    st.markdown('<p class="section-label">Corpus segmentation</p>', unsafe_allow_html=True)
+    use_parent = st.checkbox(
+        "Hierarchical segmentation (retrieve children, cite parents)",
+        value=False,
+    )
     if not use_parent:
-        c_size = st.number_input("Chunk size", min_value=64, value=512, step=32)
-        c_overlap = st.number_input("Chunk overlap", min_value=0, value=64, step=8)
+        c_size = st.number_input(
+            "Target chunk length (characters)",
+            min_value=64,
+            value=512,
+            step=32,
+        )
+        c_overlap = st.number_input(
+            "Adjacent chunk overlap (characters)",
+            min_value=0,
+            value=64,
+            step=8,
+        )
     else:
         c_size, c_overlap = 512, 64
-        with st.expander("Parent / child split sizes"):
+        with st.expander("Parent and child spans"):
             p_cs = st.number_input("Parent chunk size", value=2000, step=100)
             p_ov = st.number_input("Parent overlap", value=200, step=50)
             ch_cs = st.number_input("Child chunk size", value=400, step=50)
             ch_ov = st.number_input("Child overlap", value=40, step=10)
 
-    use_mq = st.checkbox("Multi-query retrieval", value=True)
-    use_hyde = st.checkbox("HyDE retrieval", value=False)
+    st.markdown('<p class="section-label">Query-time retrieval</p>', unsafe_allow_html=True)
+    use_mq = st.checkbox("Multi-query rewriting", value=True)
+    use_hyde = st.checkbox("Hypothetical document embeddings (HyDE)", value=False)
 
-    st.header("Index")
-    uploads = st.file_uploader(
-        "Upload .pdf / .txt / .md",
-        type=["pdf", "txt", "md", "markdown"],
-        accept_multiple_files=True,
+indexed_ready = st.session_state.indexed_corpus is not None
+if indexed_ready:
+    st.markdown(
+        '<span class="status-chip ready">Search index synchronized</span>',
+        unsafe_allow_html=True,
     )
-    build = st.button("Build / rebuild index", type="primary")
+else:
+    st.markdown(
+        '<span class="status-chip pending">Awaiting corpus build</span>',
+        unsafe_allow_html=True,
+    )
+
+left, right = st.columns((1, 1), gap="large")
+
+with left:
+    st.markdown('<p class="section-label">Corpus ingestion</p>', unsafe_allow_html=True)
+    with st.container(border=True):
+        uploads = st.file_uploader(
+            "Select files",
+            type=["pdf", "txt", "md", "markdown"],
+            accept_multiple_files=True,
+            help="Portable document and plain-text markdown sources are normalized for segmentation.",
+        )
+        build = st.button(
+            "Build or rebuild search index",
+            type="primary",
+            use_container_width=True,
+        )
+
+with right:
+    st.markdown('<p class="section-label">Grounded question answering</p>', unsafe_allow_html=True)
+    with st.container(border=True):
+        query = st.text_area(
+            "Natural-language question",
+            height=136,
+            placeholder="Ask a factual question constrained to your uploaded corpus…",
+            label_visibility="visible",
+        )
+        ask = st.button(
+            "Generate answer",
+            type="primary",
+            use_container_width=True,
+        )
 
 if build:
     if not uploads:
-        st.error("Upload at least one document first.")
+        st.error("Add at least one supported file before building the search index.")
     else:
         names = [u.name for u in uploads]
         blobs = [u.getvalue() for u in uploads]
@@ -138,7 +275,7 @@ if build:
                     child_chunk_overlap=int(ch_ov),
                 )
 
-            with st.spinner("Indexing (load → chunk → embed → Chroma)…"):
+            with st.spinner("Constructing segmented vectors and persistence layer…"):
                 ic = ingest_paths_to_index(
                     tmp_paths,
                     persist_directory=persist,
@@ -151,20 +288,18 @@ if build:
                 )
             st.session_state.indexed_corpus = ic
             st.session_state.index_persist_dir = str(persist)
-            st.success("Index ready.")
+            st.success("Search index operational—proceed to questioning.")
         except Exception as exc:  # noqa: BLE001 — surface to user
             st.exception(exc)
 
-st.divider()
-query = st.text_area("Question", placeholder="Ask something about your documents…")
-ask = st.button("Answer", type="primary")
+st.markdown('<hr class="product-rule" />', unsafe_allow_html=True)
 
 if ask:
     idx = st.session_state.indexed_corpus
     if idx is None:
-        st.warning("Build an index from the sidebar first.")
+        st.warning("Complete ingestion and indexing before submitting questions.")
     elif not query.strip():
-        st.warning("Enter a question.")
+        st.warning("Enter a substantive question.")
     else:
         try:
             gen_oo = {}
@@ -174,7 +309,7 @@ if ask:
             else:
                 gen_ho = {"model_id": gen_hf_model}
 
-            with st.spinner("Loading chat model…"):
+            with st.spinner("Provisioning language session…"):
                 chat = build_chat_model(
                     gen_backend,
                     ollama_options=gen_oo,
@@ -192,7 +327,7 @@ if ask:
                 parent_index=idx.parent_index,
             )
 
-            with st.spinner("Retrieving + generating…"):
+            with st.spinner("Resolving citations and drafting response…"):
                 bundle = retrieve_bundle(query.strip(), inp=r_in)
                 answer = generate_rag_answer(
                     query.strip(),
@@ -200,15 +335,19 @@ if ask:
                     chat,
                 )
 
-            st.subheader("Answer")
+            st.markdown("#### Synthesized response")
             st.write(answer)
-            with st.expander("Context used"):
+            with st.expander("Evidence passages", expanded=False):
                 for i, doc in enumerate(bundle.context_documents, start=1):
                     src = (doc.metadata or {}).get("source", "")
-                    st.markdown(f"**[{i}]** `{src}`")
+                    st.markdown(f"**Passage {i}** · `{src}`")
                     st.text((doc.page_content or "")[:4000])
         except Exception as exc:  # noqa: BLE001
             st.exception(exc)
 
 if st.session_state.index_persist_dir:
-    st.caption(f"Last index persist directory: `{st.session_state.index_persist_dir}`")
+    st.markdown(
+        '<p class="footer-muted">Persisted corpus storage: '
+        f'<code>{st.session_state.index_persist_dir}</code></p>',
+        unsafe_allow_html=True,
+    )
